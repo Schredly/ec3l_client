@@ -345,55 +345,62 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
   );
 }
 
-function traceNodeColor(status: string): { dot: string; line: string } {
-  switch (status) {
-    case "running":
-      return { dot: "bg-blue-500", line: "bg-blue-500/30" };
-    case "completed":
-      return { dot: "bg-green-500", line: "bg-green-500/30" };
-    case "failed":
-      return { dot: "bg-red-500", line: "bg-red-500/30" };
-    default:
-      return { dot: "bg-muted-foreground", line: "bg-border" };
-  }
+const workflowStatusMap: Record<string, { dot: string; line: string }> = {
+  pending:   { dot: "bg-muted-foreground", line: "bg-border" },
+  running:   { dot: "bg-blue-500",         line: "bg-blue-500/30" },
+  completed: { dot: "bg-green-500",        line: "bg-green-500/30" },
+  failed:    { dot: "bg-red-500",          line: "bg-red-500/30" },
+};
+
+const defaultStatusColors = { dot: "bg-muted-foreground", line: "bg-border" };
+
+interface TraceNodeProps {
+  dotColor: string;
+  lineColor: string;
+  isLast: boolean;
+  name: string;
+  status: string;
+  startedAt: string;
+  completedAt: string | null;
+  error: string | null;
+  intentId: string;
 }
 
 function WorkflowTraceNode({
-  intent,
+  dotColor,
+  lineColor,
   isLast,
-}: {
-  intent: WorkflowExecutionIntent;
-  isLast: boolean;
-}) {
-  const colors = traceNodeColor(intent.status);
+  name,
+  status,
+  startedAt,
+  completedAt,
+  error,
+  intentId,
+}: TraceNodeProps) {
   return (
     <div className="flex gap-2.5">
       <div className="flex flex-col items-center">
-        <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${colors.dot}`} />
-        {!isLast && <div className={`w-px flex-1 mt-0.5 ${colors.line}`} />}
+        <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${dotColor}`} />
+        {!isLast && <div className={`w-px flex-1 mt-0.5 ${lineColor}`} />}
       </div>
-      <div className="flex-1 min-w-0 pb-3">
+      <div className="flex-1 min-w-0 pb-2.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold font-mono leading-tight" title={intent.workflowDefinitionId}>
-            {intent.workflowDefinitionId.length > 20
-              ? `${intent.workflowDefinitionId.slice(0, 20)}…`
-              : intent.workflowDefinitionId}
+          <span className="text-xs font-semibold font-mono leading-tight" title={name}>
+            {name.length > 20 ? `${name.slice(0, 20)}…` : name}
           </span>
-          <IntentStatusBadge status={intent.status} />
+          <IntentStatusBadge status={status} />
         </div>
         <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-          <span>Started {format(new Date(intent.createdAt), "MMM d HH:mm:ss")}</span>
-          {intent.status === "completed" && (
-            <span>Completed {format(new Date(intent.createdAt), "MMM d HH:mm:ss")}</span>
-          )}
+          <span>Started {startedAt}</span>
+          {completedAt && <span>Completed {completedAt}</span>}
         </div>
-        {intent.error && (
-          <p className="text-[11px] text-destructive mt-0.5 leading-tight truncate" title={intent.error}>
-            {intent.error}
+        {error && (
+          <p className="text-[11px] text-destructive mt-0.5 leading-tight truncate" title={error}>
+            {error}
           </p>
         )}
-        <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-mono" title={intent.id}>
-          {intent.id.slice(0, 12)}
+        <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-mono" title={intentId}>
+          {intentId.slice(0, 12)}
         </p>
       </div>
     </div>
@@ -407,13 +414,25 @@ function WorkflowTrace({ intents }: { intents: WorkflowExecutionIntent[] }) {
 
   return (
     <div className="space-y-0">
-      {sorted.map((intent, idx) => (
-        <WorkflowTraceNode
-          key={intent.id}
-          intent={intent}
-          isLast={idx === sorted.length - 1}
-        />
-      ))}
+      {sorted.map((intent, idx) => {
+        const colors = workflowStatusMap[intent.status] || defaultStatusColors;
+        const startedAt = format(new Date(intent.createdAt), "MMM d HH:mm:ss");
+        const completedAt = intent.status === "completed" ? startedAt : null;
+        return (
+          <WorkflowTraceNode
+            key={intent.id}
+            dotColor={colors.dot}
+            lineColor={colors.line}
+            isLast={idx === sorted.length - 1}
+            name={intent.workflowDefinitionId}
+            status={intent.status}
+            startedAt={startedAt}
+            completedAt={completedAt}
+            error={intent.error}
+            intentId={intent.id}
+          />
+        );
+      })}
     </div>
   );
 }
