@@ -97,7 +97,7 @@ export default function Records() {
 
   if (selectedInstance) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-4 max-w-6xl mx-auto">
         <RecordDetailPanel
           instance={selectedInstance}
           recordTypeName={recordTypeName}
@@ -108,11 +108,11 @@ export default function Records() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-4 space-y-4 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Record Instances</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Browse record instances, assignment, and SLA status
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function Records() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-muted-foreground block mb-2">Record Type</label>
+        <label className="text-sm font-medium text-muted-foreground block mb-1.5">Record Type</label>
         {typesLoading ? (
           <Skeleton className="h-9 w-64" />
         ) : (
@@ -151,8 +151,8 @@ export default function Records() {
 
       {!selectedTypeId ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Database className="w-12 h-12 text-muted-foreground mb-4" />
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <Database className="w-10 h-10 text-muted-foreground mb-3" />
             <h3 className="text-lg font-medium mb-1">Select a record type</h3>
             <p className="text-sm text-muted-foreground">
               Choose a record type above to view its instances
@@ -160,15 +160,15 @@ export default function Records() {
           </CardContent>
         </Card>
       ) : instancesLoading ? (
-        <div className="space-y-2" data-testid="instances-loading">
+        <div className="space-y-1.5" data-testid="instances-loading">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-10 w-full" />
+            <Skeleton key={i} className="h-9 w-full" />
           ))}
         </div>
       ) : !instances || instances.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Database className="w-12 h-12 text-muted-foreground mb-4" />
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <Database className="w-10 h-10 text-muted-foreground mb-3" />
             <h3 className="text-lg font-medium mb-1">No instances</h3>
             <p className="text-sm text-muted-foreground">
               No record instances found for this type

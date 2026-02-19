@@ -106,8 +106,8 @@ function StatusIndicator({ slaStatus }: { slaStatus: string | null }) {
 
 function DetailField({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3 py-3">
-      <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted text-muted-foreground flex-shrink-0">
+    <div className="flex items-start gap-2.5 py-2">
+      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-muted text-muted-foreground flex-shrink-0">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -121,8 +121,8 @@ function DetailField({ label, icon, children }: { label: string; icon: React.Rea
 function DetailsTab({ instance, recordTypeName }: { instance: RecordInstanceWithSla; recordTypeName: string }) {
   return (
     <Card>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+      <CardContent className="pt-4 pb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0">
           <DetailField label="Record ID" icon={<Hash className="w-4 h-4" />}>
             <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{instance.id}</span>
           </DetailField>
@@ -238,8 +238,8 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
   if (events.length === 0) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <Activity className="w-10 h-10 text-muted-foreground mb-3" />
+        <CardContent className="flex flex-col items-center justify-center py-10">
+          <Activity className="w-9 h-9 text-muted-foreground mb-2" />
           <p className="text-sm font-medium mb-1">No activity yet</p>
           <p className="text-xs text-muted-foreground">Events for this record will appear here</p>
         </CardContent>
@@ -249,10 +249,10 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="pt-4 pb-2">
         <div className="space-y-0">
           {events.map((entry, idx) => (
-            <div key={entry.id} className="flex gap-3 pb-5">
+            <div key={entry.id} className="flex gap-2.5 pb-3.5">
               <div className="flex flex-col items-center">
                 <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${entry.dotColor}`} />
                 {idx < events.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
@@ -280,8 +280,8 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
 function WorkflowTab() {
   return (
     <Card>
-      <CardContent className="flex flex-col items-center justify-center py-16">
-        <Workflow className="w-10 h-10 text-muted-foreground mb-3" />
+      <CardContent className="flex flex-col items-center justify-center py-10">
+        <Workflow className="w-9 h-9 text-muted-foreground mb-2" />
         <p className="text-sm font-medium mb-1">No workflow intents</p>
         <p className="text-xs text-muted-foreground">Workflow executions linked to this record will appear here</p>
       </CardContent>
@@ -297,8 +297,8 @@ interface RecordDetailPanelProps {
 
 export function RecordDetailPanel({ instance, recordTypeName, onBack }: RecordDetailPanelProps) {
   return (
-    <div className="space-y-6" data-testid={`record-detail-${instance.id}`}>
-      <div className="flex items-start gap-4">
+    <div className="space-y-4" data-testid={`record-detail-${instance.id}`}>
+      <div className="flex items-start gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -309,10 +309,10 @@ export function RecordDetailPanel({ instance, recordTypeName, onBack }: RecordDe
           <ArrowLeft className="w-4 h-4" />
         </Button>
 
-        <div className="flex-1 min-w-0 space-y-3">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold tracking-tight font-mono" data-testid="text-record-id">
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="space-y-0.5">
+              <h2 className="text-lg font-semibold tracking-tight font-mono" data-testid="text-record-id">
                 {instance.id.slice(0, 12)}...
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -351,15 +351,15 @@ export function RecordDetailPanel({ instance, recordTypeName, onBack }: RecordDe
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="mt-4">
+        <TabsContent value="details" className="mt-3">
           <DetailsTab instance={instance} recordTypeName={recordTypeName} />
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-4">
+        <TabsContent value="activity" className="mt-3">
           <ActivityTab instance={instance} />
         </TabsContent>
 
-        <TabsContent value="workflow" className="mt-4">
+        <TabsContent value="workflow" className="mt-3">
           <WorkflowTab />
         </TabsContent>
       </Tabs>
