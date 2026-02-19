@@ -169,50 +169,87 @@ function DetailsTab({ instance, recordTypeName }: { instance: RecordInstanceWith
   );
 }
 
+type EventCategory = "record" | "assignment" | "sla" | "workflow" | "change";
+
+const categoryMeta: Record<EventCategory, { color: string; label: string; variant: "secondary" | "outline" | "destructive" }> = {
+  record:     { color: "bg-blue-500",   label: "record",     variant: "secondary" },
+  assignment: { color: "bg-emerald-500", label: "assignment", variant: "outline" },
+  sla:        { color: "bg-red-500",     label: "sla",        variant: "destructive" },
+  workflow:   { color: "bg-violet-500",  label: "workflow",   variant: "outline" },
+  change:     { color: "bg-amber-500",   label: "change",     variant: "outline" },
+};
+
 interface TimelineEvent {
   id: string;
   timestamp: string;
-  event: string;
+  title: string;
   detail: string | null;
   icon: React.ReactNode;
-  dotColor: string;
-  badge: React.ReactNode | null;
+  category: EventCategory;
 }
 
 function buildTimelineFromInstance(instance: RecordInstanceWithSla): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
   events.push({
-    id: "created",
+    id: "rec-created",
     timestamp: instance.createdAt,
-    event: "Record Created",
-    detail: `Created by ${instance.createdBy}`,
-    icon: <PlusCircle className="w-3.5 h-3.5" />,
-    dotColor: "bg-blue-500",
-    badge: <Badge variant="secondary" className="text-[10px]">system</Badge>,
+    title: "Record Created",
+    detail: `Opened by ${instance.createdBy}`,
+    icon: <PlusCircle className="w-3 h-3" />,
+    category: "record",
+  });
+
+  events.push({
+    id: "rec-type-set",
+    timestamp: instance.createdAt,
+    title: "Record Type Bound",
+    detail: `Type ${instance.recordTypeId.slice(0, 8)}`,
+    icon: <FileText className="w-3 h-3" />,
+    category: "record",
   });
 
   if (instance.assignedTo) {
     events.push({
-      id: "assigned-user",
+      id: "assign-user",
       timestamp: instance.createdAt,
-      event: "Assigned to User",
+      title: "Assigned to User",
       detail: instance.assignedTo,
-      icon: <UserCheck className="w-3.5 h-3.5" />,
-      dotColor: "bg-green-500",
-      badge: <Badge variant="outline" className="text-[10px]">assignment</Badge>,
+      icon: <UserCheck className="w-3 h-3" />,
+      category: "assignment",
     });
   }
 
   if (instance.assignedGroup) {
     events.push({
-      id: "assigned-group",
+      id: "assign-group",
       timestamp: instance.createdAt,
-      event: "Assigned to Group",
+      title: "Assigned to Group",
       detail: instance.assignedGroup,
-      icon: <Users className="w-3.5 h-3.5" />,
-      dotColor: "bg-green-500",
-      badge: <Badge variant="outline" className="text-[10px]">assignment</Badge>,
+      icon: <Users className="w-3 h-3" />,
+      category: "assignment",
+    });
+  }
+
+  if (!instance.assignedTo && !instance.assignedGroup) {
+    events.push({
+      id: "assign-none",
+      timestamp: instance.createdAt,
+      title: "Unassigned",
+      detail: "No user or group assigned",
+      icon: <UserCircle className="w-3 h-3" />,
+      category: "assignment",
+    });
+  }
+
+  if (instance.dueAt) {
+    events.push({
+      id: "sla-started",
+      timestamp: instance.createdAt,
+      title: "SLA Timer Started",
+      detail: `Due ${format(new Date(instance.dueAt), "MMM d, HH:mm")}`,
+      icon: <Timer className="w-3 h-3" />,
+      category: "sla",
     });
   }
 
@@ -220,13 +257,41 @@ function buildTimelineFromInstance(instance: RecordInstanceWithSla): TimelineEve
     events.push({
       id: "sla-breached",
       timestamp: instance.dueAt,
-      event: "SLA Breached",
+      title: "SLA Breached",
       detail: "Timer deadline exceeded",
-      icon: <AlertTriangle className="w-3.5 h-3.5" />,
-      dotColor: "bg-red-500",
-      badge: <Badge variant="destructive" className="text-[10px]">sla</Badge>,
+      icon: <AlertTriangle className="w-3 h-3" />,
+      category: "sla",
     });
   }
+
+  if (instance.slaStatus && instance.slaStatus !== "breached") {
+    events.push({
+      id: "sla-active",
+      timestamp: instance.createdAt,
+      title: "SLA Pending",
+      detail: instance.dueAt ? `Deadline ${format(new Date(instance.dueAt), "MMM d, HH:mm")}` : "Timer running",
+      icon: <Clock className="w-3 h-3" />,
+      category: "sla",
+    });
+  }
+
+  events.push({
+    id: "wf-ready",
+    timestamp: instance.createdAt,
+    title: "Workflow Eligible",
+    detail: "Record available for workflow triggers",
+    icon: <Workflow className="w-3 h-3" />,
+    category: "workflow",
+  });
+
+  events.push({
+    id: "chg-track",
+    timestamp: instance.createdAt,
+    title: "Change Tracking Initialized",
+    detail: "Record entered change pipeline",
+    icon: <Activity className="w-3 h-3" />,
+    category: "change",
+  });
 
   events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   return events;
@@ -249,28 +314,30 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
 
   return (
     <Card>
-      <CardContent className="pt-4 pb-2">
+      <CardContent className="pt-3 pb-1">
         <div className="space-y-0">
-          {events.map((entry, idx) => (
-            <div key={entry.id} className="flex gap-2.5 pb-3.5">
-              <div className="flex flex-col items-center">
-                <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${entry.dotColor}`} />
-                {idx < events.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium">{entry.event}</span>
-                  {entry.badge}
+          {events.map((entry, idx) => {
+            const meta = categoryMeta[entry.category];
+            return (
+              <div key={entry.id} className="flex gap-2 pb-2.5">
+                <div className="flex flex-col items-center pt-0.5">
+                  <div className={`w-2 h-2 rounded-full ${meta.color} flex-shrink-0`} />
+                  {idx < events.length - 1 && <div className="w-px flex-1 bg-border mt-0.5" />}
                 </div>
-                {entry.detail && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{entry.detail}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {format(new Date(entry.timestamp), "MMM d, yyyy HH:mm:ss")}
-                </p>
+                <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
+                  <span className="text-muted-foreground flex-shrink-0">{entry.icon}</span>
+                  <span className="text-xs font-medium leading-tight">{entry.title}</span>
+                  <Badge variant={meta.variant} className="text-[9px] leading-none py-0 px-1.5 h-4">{meta.label}</Badge>
+                  {entry.detail && (
+                    <span className="text-[11px] text-muted-foreground leading-tight">{entry.detail}</span>
+                  )}
+                  <span className="text-[10px] text-muted-foreground/60 ml-auto flex-shrink-0 tabular-nums">
+                    {format(new Date(entry.timestamp), "MMM d HH:mm:ss")}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
