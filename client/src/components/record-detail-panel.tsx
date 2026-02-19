@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow, format } from "date-fns";
-import type { RecordInstance } from "@shared/schema";
+import { IntentStatusBadge } from "@/components/status-badge";
+import type { RecordInstance, WorkflowExecutionIntent } from "@shared/schema";
 
 type RecordInstanceWithSla = RecordInstance & {
   dueAt: string | null;
@@ -344,13 +345,96 @@ function ActivityTab({ instance }: { instance: RecordInstanceWithSla }) {
   );
 }
 
-function WorkflowTab() {
+function traceNodeColor(status: string): { dot: string; line: string } {
+  switch (status) {
+    case "running":
+      return { dot: "bg-blue-500", line: "bg-blue-500/30" };
+    case "completed":
+      return { dot: "bg-green-500", line: "bg-green-500/30" };
+    case "failed":
+      return { dot: "bg-red-500", line: "bg-red-500/30" };
+    default:
+      return { dot: "bg-muted-foreground", line: "bg-border" };
+  }
+}
+
+function WorkflowTraceNode({
+  intent,
+  isLast,
+}: {
+  intent: WorkflowExecutionIntent;
+  isLast: boolean;
+}) {
+  const colors = traceNodeColor(intent.status);
+  return (
+    <div className="flex gap-2.5">
+      <div className="flex flex-col items-center">
+        <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${colors.dot}`} />
+        {!isLast && <div className={`w-px flex-1 mt-0.5 ${colors.line}`} />}
+      </div>
+      <div className="flex-1 min-w-0 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold font-mono leading-tight" title={intent.workflowDefinitionId}>
+            {intent.workflowDefinitionId.length > 20
+              ? `${intent.workflowDefinitionId.slice(0, 20)}…`
+              : intent.workflowDefinitionId}
+          </span>
+          <IntentStatusBadge status={intent.status} />
+        </div>
+        <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+          <span>Started {format(new Date(intent.createdAt), "MMM d HH:mm:ss")}</span>
+          {intent.status === "completed" && (
+            <span>Completed {format(new Date(intent.createdAt), "MMM d HH:mm:ss")}</span>
+          )}
+        </div>
+        {intent.error && (
+          <p className="text-[11px] text-destructive mt-0.5 leading-tight truncate" title={intent.error}>
+            {intent.error}
+          </p>
+        )}
+        <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-mono" title={intent.id}>
+          {intent.id.slice(0, 12)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowTrace({ intents }: { intents: WorkflowExecutionIntent[] }) {
+  const sorted = [...intents].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return (
+    <div className="space-y-0">
+      {sorted.map((intent, idx) => (
+        <WorkflowTraceNode
+          key={intent.id}
+          intent={intent}
+          isLast={idx === sorted.length - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function WorkflowTab({ intents }: { intents: WorkflowExecutionIntent[] }) {
+  if (intents.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-10">
+          <Workflow className="w-9 h-9 text-muted-foreground mb-2" />
+          <p className="text-sm font-medium mb-1">No workflow intents</p>
+          <p className="text-xs text-muted-foreground">Workflow executions linked to this record will appear here</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardContent className="flex flex-col items-center justify-center py-10">
-        <Workflow className="w-9 h-9 text-muted-foreground mb-2" />
-        <p className="text-sm font-medium mb-1">No workflow intents</p>
-        <p className="text-xs text-muted-foreground">Workflow executions linked to this record will appear here</p>
+      <CardContent className="pt-3 pb-1">
+        <WorkflowTrace intents={intents} />
       </CardContent>
     </Card>
   );
@@ -360,9 +444,10 @@ interface RecordDetailPanelProps {
   instance: RecordInstanceWithSla;
   recordTypeName: string;
   onBack: () => void;
+  workflowIntents?: WorkflowExecutionIntent[];
 }
 
-export function RecordDetailPanel({ instance, recordTypeName, onBack }: RecordDetailPanelProps) {
+export function RecordDetailPanel({ instance, recordTypeName, onBack, workflowIntents = [] }: RecordDetailPanelProps) {
   return (
     <div className="space-y-4" data-testid={`record-detail-${instance.id}`}>
       <div className="flex items-start gap-3">
@@ -427,7 +512,7 @@ export function RecordDetailPanel({ instance, recordTypeName, onBack }: RecordDe
         </TabsContent>
 
         <TabsContent value="workflow" className="mt-3">
-          <WorkflowTab />
+          <WorkflowTab intents={workflowIntents} />
         </TabsContent>
       </Tabs>
     </div>
