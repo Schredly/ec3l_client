@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Database, User, Users, Timer, Play } from "lucide-react";
+import { Database, User, Users, Timer, Play, ChevronRight } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { RecordDetailPanel } from "@/components/record-detail-panel";
 import type { RecordType, RecordInstance } from "@shared/schema";
 
 type RecordInstanceWithSla = RecordInstance & {
@@ -57,6 +58,7 @@ function SlaStatusBadge({ slaStatus }: { slaStatus: string | null }) {
 
 export default function Records() {
   const [selectedTypeId, setSelectedTypeId] = useState<string>("");
+  const [selectedInstance, setSelectedInstance] = useState<RecordInstanceWithSla | null>(null);
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -88,6 +90,21 @@ export default function Records() {
     } finally {
       setProcessing(false);
     }
+  }
+
+  const selectedRecordType = recordTypes?.find((rt) => rt.id === selectedTypeId);
+  const recordTypeName = selectedRecordType ? `${selectedRecordType.name} (${selectedRecordType.key})` : "";
+
+  if (selectedInstance) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto">
+        <RecordDetailPanel
+          instance={selectedInstance}
+          recordTypeName={recordTypeName}
+          onBack={() => setSelectedInstance(null)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -169,37 +186,42 @@ export default function Records() {
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">SLA Status</th>
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">Created By</th>
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">Created</th>
+                <th className="w-10" />
               </tr>
             </thead>
             <tbody>
               {instances.map((instance) => (
                 <tr
                   key={instance.id}
-                  className="border-b last:border-b-0"
+                  className="border-b last:border-b-0 cursor-pointer hover-elevate transition-colors"
                   data-testid={`instance-row-${instance.id}`}
+                  onClick={() => setSelectedInstance(instance)}
                 >
-                  <td className="px-4 py-2 font-mono text-xs" title={instance.id}>
+                  <td className="px-4 py-2.5 font-mono text-xs" title={instance.id}>
                     {instance.id.slice(0, 8)}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2.5">
                     <AssignedCell
                       assignedTo={instance.assignedTo}
                       assignedGroup={instance.assignedGroup}
                     />
                   </td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
                     {instance.dueAt
                       ? format(new Date(instance.dueAt), "MMM d, HH:mm")
                       : "—"}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2.5">
                     <SlaStatusBadge slaStatus={instance.slaStatus} />
                   </td>
-                  <td className="px-4 py-2 text-xs">
+                  <td className="px-4 py-2.5 text-xs">
                     {instance.createdBy}
                   </td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(instance.createdAt), { addSuffix: true })}
+                  </td>
+                  <td className="px-2 py-2.5 text-muted-foreground">
+                    <ChevronRight className="w-4 h-4" />
                   </td>
                 </tr>
               ))}
